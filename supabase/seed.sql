@@ -1,0 +1,42 @@
+-- ============================================================
+-- Valora — seed.sql (v2, multi-hogar)
+-- Datos de prueba para desarrollo LOCAL. No se usa en producción.
+--
+-- Las categorías predefinidas y el hogar inicial se crean
+-- automáticamente al registrar un usuario (trigger on_auth_user_created).
+--
+-- Para añadir movimientos de prueba:
+--   1. Registra un usuario desde la app o con la API admin local.
+--   2. Copia su id desde auth.users y el id del hogar creado
+--      automáticamente desde la tabla hogares.
+--   3. Sustituye los UUIDs de abajo y descomenta el bloque.
+--
+-- Ejemplo (descomentar y ajustar los ids):
+--
+-- do $$
+-- declare
+--   v_uid        uuid := '00000000-0000-0000-0000-000000000000'; -- id del usuario
+--   v_hogar_id   uuid := '00000000-0000-0000-0000-000000000001'; -- id del hogar
+--   v_cuenta_id  uuid;
+--   v_cat_comida uuid;
+--   v_cat_sueldo uuid;
+-- begin
+--   -- Crear cuenta de prueba
+--   insert into cuentas (hogar_id, nombre, tipo, saldo_inicial, color, icono)
+--   values (v_hogar_id, 'Cuenta principal', 'banco', 10000.00, '#3b82f6', 'building-columns')
+--   returning id into v_cuenta_id;
+--
+--   -- Obtener categorías default del hogar
+--   select id into v_cat_comida from categorias
+--     where hogar_id = v_hogar_id and nombre = 'Alimentación' limit 1;
+--   select id into v_cat_sueldo from categorias
+--     where hogar_id = v_hogar_id and nombre = 'Sueldo' limit 1;
+--
+--   -- Movimientos de prueba
+--   insert into movimientos (hogar_id, creado_por, cuenta_id, categoria_id, tipo, monto, descripcion, fecha)
+--   values
+--     (v_hogar_id, v_uid, v_cuenta_id, v_cat_sueldo, 'ingreso', 25000.00, 'Sueldo de mayo',  current_date),
+--     (v_hogar_id, v_uid, v_cuenta_id, v_cat_comida, 'gasto',     850.50, 'Súper semanal',   current_date),
+--     (v_hogar_id, v_uid, v_cuenta_id, v_cat_comida, 'gasto',     320.00, 'Comida fuera',    current_date - 3);
+-- end $$;
+-- ============================================================

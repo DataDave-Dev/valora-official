@@ -1,0 +1,35 @@
+# Dependencias
+node_modules/
+.pnpm-store/
+
+# AI Files
+CLAUDE.md
+.claude/
+
+# Builds
+dist/
+build/
+*.tsbuildinfo
+
+# Entorno (NUNCA commitear)
+.env
+.env.local
+.env.*.local
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Editor / SO
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Vercel
+.vercel/
