@@ -171,3 +171,57 @@ export const TIPO_DEUDA_LABELS: Record<TipoDeuda, string> = {
   por_cobrar: 'Por cobrar',
   por_pagar: 'Por pagar',
 }
+
+export type RolHogar = 'dueno' | 'miembro'
+
+export const ROL_HOGAR_LABELS: Record<RolHogar, string> = {
+  dueno: 'Dueño',
+  miembro: 'Miembro',
+}
+
+export type EstadoInvitacion = 'pendiente' | 'aceptada' | 'cancelada'
+
+export const ESTADO_INVITACION_LABELS: Record<EstadoInvitacion, string> = {
+  pendiente: 'Pendiente',
+  aceptada: 'Aceptada',
+  cancelada: 'Cancelada',
+}
+
+/** Miembro de un hogar, con su perfil cuando es visible para co-miembros. */
+export type IHogarMiembro = Database['public']['Tables']['hogar_miembros']['Row'] & {
+  profile?: IProfile | null
+}
+
+/** Hogar con metadatos del rol del usuario actual (derivados al cargar). */
+export type IHogar = Database['public']['Tables']['hogares']['Row'] & {
+  rol_actual?: RolHogar
+  es_dueno?: boolean
+}
+
+export type IHogarInsert = Database['public']['Tables']['hogares']['Insert']
+
+export type IHogarUpdate = Database['public']['Tables']['hogares']['Update']
+
+export type IHogarMiembroInsert = Database['public']['Tables']['hogar_miembros']['Insert']
+
+export type IHogarMiembroUpdate = Database['public']['Tables']['hogar_miembros']['Update']
+
+export type IInvitacion = Database['public']['Tables']['invitaciones']['Row']
+
+export type IInvitacionInsert = Database['public']['Tables']['invitaciones']['Insert']
+
+/** Resultado de la RPC `detalle_invitacion` (preview por token). */
+export interface IInvitacionDetalle {
+  hogar_id: string
+  hogar_nombre: string
+  email: string
+  rol: RolHogar
+  estado: EstadoInvitacion
+  expirada: boolean
+}
+
+/** Resultado de la RPC `aceptar_invitacion`. */
+export interface IInvitacionAceptada {
+  hogar_id: string
+  hogar_nombre: string
+}

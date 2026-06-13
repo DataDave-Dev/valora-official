@@ -370,6 +370,50 @@ export type Database = {
         }
         Relationships: []
       }
+      invitaciones: {
+        Row: {
+          created_at: string
+          email: string
+          estado: string
+          expira_en: string
+          hogar_id: string
+          id: string
+          invitado_por: string
+          rol: string
+          token: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          estado?: string
+          expira_en?: string
+          hogar_id: string
+          id?: string
+          invitado_por: string
+          rol?: string
+          token?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          estado?: string
+          expira_en?: string
+          hogar_id?: string
+          id?: string
+          invitado_por?: string
+          rol?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invitaciones_hogar_id_fkey"
+            columns: ["hogar_id"]
+            isOneToOne: false
+            referencedRelation: "hogares"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       metas: {
         Row: {
           completada: boolean | null
@@ -810,6 +854,9 @@ export type Database = {
     }
     Functions: {
       _recalcular_meta: { Args: { _meta_id: string }; Returns: undefined }
+      aceptar_invitacion: { Args: { p_token: string }; Returns: Json }
+      comparten_hogar: { Args: { _user_id: string }; Returns: boolean }
+      detalle_invitacion: { Args: { p_token: string }; Returns: Json }
       es_dueno_hogar: { Args: { _hogar_id: string }; Returns: boolean }
       es_miembro_hogar: { Args: { _hogar_id: string }; Returns: boolean }
     }
