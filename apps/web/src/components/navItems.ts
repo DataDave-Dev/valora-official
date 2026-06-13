@@ -14,6 +14,7 @@ import {
   Tags,
   Target,
   User,
+  Users,
   Wallet,
 } from 'lucide-react'
 
@@ -33,7 +34,7 @@ export interface INavItem {
 export const NAV_ITEMS: INavItem[] = [
   { to: '/', label: 'Inicio', icon: LayoutDashboard },
   { to: '/cuentas', label: 'Cuentas', icon: Wallet },
-  { to: '/analisis', label: 'Análisis', icon: BarChart3 },
+  { to: '/reportes', label: 'Reportes', icon: BarChart3 },
   { to: '/perfil', label: 'Más', icon: Menu },
 ]
 
@@ -51,7 +52,7 @@ export const SIDEBAR_NAV_ITEMS: INavItem[] = [
   { to: '/recurrentes', label: 'Recurrentes', icon: CalendarClock },
   { to: '/deudas', label: 'Deudas', icon: HandCoins },
   { to: '/cuentas', label: 'Cuentas', icon: Wallet },
-  { to: '/analisis', label: 'Análisis', icon: BarChart3 },
+  { to: '/reportes', label: 'Reportes', icon: BarChart3 },
   {
     to: '/catalogos',
     label: 'Catálogos',
@@ -66,6 +67,7 @@ export const SIDEBAR_NAV_ITEMS: INavItem[] = [
     label: 'Perfil',
     icon: User,
     children: [
+      { to: '/perfil/hogar', label: 'Hogar', icon: Users },
       { to: '/perfil/cuenta', label: 'Mi cuenta', icon: IdCard },
       { to: '/perfil/configuracion', label: 'Configuración', icon: Settings },
     ],

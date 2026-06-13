@@ -1,9 +1,10 @@
 import { lazy, Suspense, useEffect } from 'react'
 import { Loader2 } from 'lucide-react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate, useParams } from 'react-router-dom'
 import { useAuthStore } from '@/store/useAuthStore'
 import { useProfileStore } from '@/store/useProfileStore'
 import { useHogarStore } from '@/store/useHogarStore'
+import { useHogaresStore } from '@/store/useHogaresStore'
 import { useCuentasStore } from '@/store/useCuentasStore'
 import { useCategoriasStore } from '@/store/useCategoriasStore'
 import { useEtiquetasStore } from '@/store/useEtiquetasStore'
@@ -36,7 +37,14 @@ import { RecurrenteFormPage } from '@/pages/RecurrenteFormPage'
 import { DeudasPage } from '@/pages/DeudasPage'
 import { DeudaFormPage } from '@/pages/DeudaFormPage'
 import { PerfilMenuPage } from '@/pages/PerfilMenuPage'
+import { HogarPage } from '@/pages/HogarPage'
+import { HogarFormPage } from '@/pages/HogarFormPage'
+import { InvitacionFormPage } from '@/pages/InvitacionFormPage'
+import { InvitacionAceptarPage } from '@/pages/InvitacionAceptarPage'
 import { AppLayout } from '@/components/AppLayout'
+
+/** Clave en localStorage para recordar una invitación abierta sin sesión. */
+export const INVITACION_PENDIENTE_KEY = 'valora:invitacion-pendiente'
 
 // El dashboard es la única ruta que usa Recharts; se carga en diferido para
 // sacar ese chunk del bundle inicial (login/onboarding).
@@ -47,14 +55,28 @@ const DashboardPage = lazy(() =>
 /** Pantalla de carga a página completa mientras se resuelve la sesión/perfil. */
 function FullScreenLoader() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background text-primary">
+    <div className="bg-background text-primary flex min-h-screen items-center justify-center">
       <Loader2 size={32} className="animate-spin" aria-hidden="true" />
       <span className="sr-only">Cargando…</span>
     </div>
   )
 }
 
+/**
+ * Captura el token de una invitación abierta sin sesión: lo guarda para
+ * retomarlo tras iniciar sesión y redirige al login.
+ */
+function GuardarInvitacionYLogin() {
+  const { token } = useParams<{ token: string }>()
+  useEffect(() => {
+    if (token) localStorage.setItem(INVITACION_PENDIENTE_KEY, token)
+  }, [token])
+  return <Navigate to="/login" replace />
+}
+
 export default function App() {
+  const navigate = useNavigate()
+
   const initialize = useAuthStore((s) => s.initialize)
   const session = useAuthStore((s) => s.session)
   const authLoading = useAuthStore((s) => s.loading)
@@ -65,36 +87,57 @@ export default function App() {
   const fetchProfile = useProfileStore((s) => s.fetchProfile)
   const resetProfile = useProfileStore((s) => s.reset)
 
-  const fetchHogar = useHogarStore((s) => s.fetchHogar)
+  const fetchHogares = useHogaresStore((s) => s.fetchHogares)
+  const hogares = useHogaresStore((s) => s.hogares)
+  const resetHogares = useHogaresStore((s) => s.reset)
+
+  const inicializarHogarActivo = useHogarStore((s) => s.inicializarHogarActivo)
   const hogar = useHogarStore((s) => s.hogar)
   const resetHogar = useHogarStore((s) => s.reset)
 
   useEffect(() => initialize(), [initialize])
 
-  // Al iniciar sesión, carga perfil + hogar; al cerrarla, limpia los stores.
+  // Al iniciar sesión, carga perfil + hogares; al cerrarla, limpia los stores.
   useEffect(() => {
     if (session) {
       void fetchProfile()
-      void fetchHogar()
+      void fetchHogares()
     } else {
       resetProfile()
       resetHogar()
+      resetHogares()
       useCuentasStore.getState().reset()
       useCategoriasStore.getState().reset()
-        useEtiquetasStore.getState().reset()
-        useRecurrentesStore.getState().reset()
-        useDeudasStore.getState().reset()
+      useEtiquetasStore.getState().reset()
+      useRecurrentesStore.getState().reset()
+      useDeudasStore.getState().reset()
       useMovimientosStore.getState().reset()
       useTransferenciasStore.getState().reset()
       usePresupuestosStore.getState().reset()
       useMetasStore.getState().reset()
     }
-  }, [session, fetchProfile, fetchHogar, resetProfile, resetHogar])
+  }, [session, fetchProfile, fetchHogares, resetProfile, resetHogar, resetHogares])
+
+  // Resuelve el hogar activo a partir de los hogares disponibles. Si el activo
+  // persistido ya no pertenece al usuario (lo abandonó/eliminó), cae al primero.
+  useEffect(() => {
+    if (session && hogares.length > 0) {
+      void inicializarHogarActivo(hogares)
+    }
+  }, [session, hogares, inicializarHogarActivo])
+
+  // Retoma una invitación abierta sin sesión una vez autenticado.
+  useEffect(() => {
+    if (!session) return
+    const token = localStorage.getItem(INVITACION_PENDIENTE_KEY)
+    if (token) {
+      localStorage.removeItem(INVITACION_PENDIENTE_KEY)
+      navigate(`/invitacion/${token}`)
+    }
+  }, [session, navigate])
 
   // Materializa los movimientos recurrentes vencidos al activar el hogar.
   // Idempotente: si ya están al día, no inserta nada.
-  // El efecto se declara antes de los `return` tempranos para no violar
-  // las reglas de hooks; si no hay hogar, simplemente no hace nada.
   useEffect(() => {
     if (!hogar) return
     void useRecurrentesStore.getState().materializarVencidos(hogar.id)
@@ -102,11 +145,12 @@ export default function App() {
 
   if (authLoading) return <FullScreenLoader />
 
-  // Sin sesión: solo el login es accesible.
+  // Sin sesión: solo el login (y la captura de invitación) son accesibles.
   if (!session) {
     return (
       <Routes>
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/invitacion/:token" element={<GuardarInvitacionYLogin />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     )
@@ -119,11 +163,13 @@ export default function App() {
 
   const onboardingCompleto = profile?.onboarding_completo === true
 
-  // Con sesión pero onboarding pendiente: el wizard es la única ruta.
+  // Con sesión pero onboarding pendiente: el wizard es la única ruta, salvo la
+  // aceptación de invitaciones (un invitado nuevo puede llegar por un enlace).
   if (!onboardingCompleto) {
     return (
       <Routes>
         <Route path="/onboarding" element={<OnboardingPage />} />
+        <Route path="/invitacion/:token" element={<InvitacionAceptarPage />} />
         <Route path="*" element={<Navigate to="/onboarding" replace />} />
       </Routes>
     )
@@ -151,7 +197,7 @@ export default function App() {
           <Route path="/cuentas" element={<CuentasPage />} />
           <Route path="/cuentas/nueva" element={<CuentaFormPage />} />
           <Route path="/cuentas/:id/editar" element={<CuentaFormPage />} />
-          <Route path="/analisis" element={<PlaceholderPage titulo="Análisis" />} />
+          <Route path="/reportes" element={<PlaceholderPage titulo="Reportes" />} />
           <Route path="/catalogos/categorias" element={<CategoriasPage />} />
           <Route path="/catalogos/categorias/nueva" element={<CategoriaFormPage />} />
           <Route path="/catalogos/categorias/:id/editar" element={<CategoriaFormPage />} />
@@ -163,11 +209,13 @@ export default function App() {
           <Route path="/deudas" element={<DeudasPage />} />
           <Route path="/deudas/nueva" element={<DeudaFormPage />} />
           <Route path="/perfil" element={<PerfilMenuPage />} />
+          <Route path="/perfil/hogar" element={<HogarPage />} />
+          <Route path="/perfil/hogar/nuevo" element={<HogarFormPage />} />
+          <Route path="/perfil/hogar/invitar" element={<InvitacionFormPage />} />
+          <Route path="/perfil/hogar/:id/editar" element={<HogarFormPage />} />
           <Route path="/perfil/cuenta" element={<PlaceholderPage titulo="Mi cuenta" />} />
-          <Route
-            path="/perfil/configuracion"
-            element={<PlaceholderPage titulo="Configuración" />}
-          />
+          <Route path="/perfil/configuracion" element={<PlaceholderPage titulo="Configuración" />} />
+          <Route path="/invitacion/:token" element={<InvitacionAceptarPage />} />
         </Route>
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/onboarding" element={<Navigate to="/" replace />} />
